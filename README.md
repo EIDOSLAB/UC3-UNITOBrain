@@ -22,7 +22,7 @@ python3 -u test_model.py --shape 128 --gpu 1 --mem full_mem <dataset-path>
 # Preprocessing Run Command
 ```
 python3 -u dicomtopt.py --rescale_size 128 --outroot <output-path> --target 'TTP'
-python3 -u dicomtopt.py --rescale_size 128 --outroot <output-path> --target 'CVF'
+python3 -u dicomtopt.py --rescale_size 128 --outroot <output-path> --target 'CBF'
 python3 -u dicomtopt.py --rescale_size 128 --outroot <output-path> --target 'CBV'
 #Without target, it computes the inputs
 python3 -u dicomtopt.py --rescale_size 128 --outroot <output-path>
