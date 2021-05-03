@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: unito-uc3
+spec:
+  restartPolicy: Never
+  containers:
+    - name: dh
+      image: perlodaniele/dh-base:gpu
+      env:
+        - name: WANDB_BASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: perlo-wandb-auth
+              key: host
+        - name: WANDB_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: perlo-wandb-auth
+              key: key
+      command: ["tail", "-f", "/dev/null"]
+      resources:
+        limits:
+          nvidia.com/gpu: 1
+        requests:
+          nvidia.com/gpu: 1
+      volumeMounts:
+        - name: uc3-data #this is just a local name
+          mountPath: /mnt/data
+  volumes:
+    - name: uc3-data
+      persistentVolumeClaim:
+        claimName: uc3-volume
