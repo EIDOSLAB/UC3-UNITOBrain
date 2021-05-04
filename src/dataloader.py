@@ -33,11 +33,13 @@ class UC3_Dataset():
     def __getitem__(self, index): # RETURN ONE ITEM ON THE INDEX
 
         im_frame = np.load(os.path.join(self.img_directory, self.img_list[index])).astype(np.float32)
+
         im_frame = im_frame/255
-        im_frame = (im_frame - 0.2375)/ 0.3159 #[channels,:,:]
+        im_frame = (im_frame - 0.2375)/ 0.3159 
         
         
         mask_frame = np.load(os.path.join(self.mask_directory,self.gt_list[index])).astype(np.float32)#unsqueeze(dim = 0)
+
         mask_frame = mask_frame/255
         if mask_frame.shape[-1] == 1:
           mask_frame = np.moveaxis(mask_frame, [0,1,2], [2,1,0])

@@ -100,81 +100,32 @@ def main(args):
 
 
     miou_evaluator = utils.Evaluator()
-
-    def mse_loss_cumulative_grads(b_size,inputs):
-        print('diff',inputs[0])
-        diff = eddl.Sub(inputs[0], inputs[1]);
-        print('diff',diff)
-        return eddl.Div(eddl.Mult(diff, diff),b_size);
-    mse_loss_cg = partial(mse_loss_cumulative_grads, args.batch_size)
     
-    #out out
-    #target = eddl.Input([num_channels_gt, size[0], size[1]])
-    #target.info()
-    #exit()
-    #mse_loss = eddl.newloss(mse_loss_cg, [out, target], "mse_loss");
-
     print("Starting training")
+    start_time = time.time()
     for e in range(args.epochs):
         print("Epoch {:d}/{:d} - Training".format(e + 1, args.epochs),
               flush=True)
 
         train_loss, train_acc = 0.0 , 0.0
         eddl.set_mode(net, 1)
+        eddl.reset_loss(net)
         shuffling_idx = np.random.permutation(len(dataset_train))
 
         start_e_time = time.time()
         for i, b in enumerate(range(num_batches_train)):#
             start_time_e = time.time()
+  
 
-            '''
-            tr_loss = 0
-            eddl.zeroGrads(net)
-            for sample in range(args.batch_size):
-                x,y = LoadBatch(dataset_train, b , batch_size = 1 , permutation = shuffling_idx)
-
-                tx, ty = [x], [y]
-                eddl.forward(net, tx)
-
-                output = eddl.getOutput(net.lout[0])
-
-                #print(dir(output))
-                #exit()
-                print(net.layers[1].name)
-                #print(dir(net.layers[1]))
-                print(net.layers[1].gradients)
-
-
-                # Log first image pair
-                if b==0 and sample == 0:
-                    examples = [wandb.Image(output.getdata(), caption="Train-Output"),wandb.Image(y.getdata(), caption="Train-"+args.target)]
-
-                print(dir(y))
-                print(dir(net))
-                target = eddl.Input(y,'target',net.dev,net.mem_level)
-
-                mse_loss = eddl.newloss(mse_loss_cg, [out, target], "mse_loss")
-                #Tensor.copy(y,target.input)                                
-                tr_loss += eddl.compute_loss(mse_loss)
-
-                print(tr_loss)
-                #eddl.backward(net,[y])
-                
-                print(np.sum(np.abs(net.layers[1].gradients[0].getdata())))
-            '''    
-
-            eddl.zeroGrads(net)
-            eddl.reset_loss(net)
             x,y = LoadBatch(dataset_train, b , batch_size = args.batch_size , permutation = shuffling_idx)
             tx, ty = [x], [y]
-            #eddl.train_batch(net, tx, ty, range(num_samples_train))
+            eddl.train_batch(net, tx, ty, range(args.batch_size))
+
             eddl.forward(net, tx)
             if b==0 :
                 output = eddl.getOutput(out)
                 examples = [wandb.Image(output.getdata()[0], caption="Train-Output"),wandb.Image(y.getdata()[0], caption="Train-"+args.target)]
                 examples += [wandb.Image(output.getdata()[1], caption="2Train-Output"),wandb.Image(y.getdata()[1], caption="2Train-"+args.target)]
-            eddl.backward(net,ty)
-            eddl.update(net)
             
 
             if i % args.log_interval == 0:
@@ -183,7 +134,7 @@ def main(args):
                 ), end="", flush=True)
                 eddl.print_loss(net, b)
                 print()
-            #train_loss += tr_loss 
+ 
             train_loss += eddl.get_losses(net)[0]
             train_acc  += eddl.get_metrics(net)[0]
 
@@ -234,7 +185,7 @@ def main(args):
                 gt = y.select([str(k)])
                 pred_np = np.array(pred, copy=False)
                 gt_np = np.array(gt, copy=False)
-                miou_evaluator.BinaryIoU(pred_np, gt_np, thresh=thresh)
+                miou_evaluator.BinaryIoU(pred_np, gt_np, thresh=np.mean(gt_np))
                 if args.save_images and args.runs_dir:
     
                     pred_np *= 255
@@ -261,7 +212,7 @@ def main(args):
         print("---Validation Accuracy:\t%s ---" % val_acc)
         if miou > miou_best:
             print("Saving weights")
-            checkpoint_path = os.path.join(args.runs_dir, "checkpoints", "dh-uc3_epoch_{}_miou_{}.bin".format(e+1, miou))
+            checkpoint_path = os.path.join(args.runs_dir, "checkpoints", "dh-uc3_{}_{}_epoch_{}_miou_{:.4f}.bin".format(args.name,args.target,e+1, miou))
             eddl.save(net, checkpoint_path, "bin")
             miou_best = miou
         run.log({"train_time_epoch": tttse, "train_loss": train_loss, "train_mae": train_acc, "val_loss": val_loss, "val_mae": val_acc , "examples": examples})

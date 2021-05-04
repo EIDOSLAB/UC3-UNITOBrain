@@ -26,9 +26,10 @@ class Evaluator:
         self.buf.append(rval)
         return rval
 
-    def PearsonCorrelation(self, a, b, thresh=0.5):
-        a = Threshold(a, thresh)
-        b = Threshold(b, thresh)
+    def PearsonCorrelation(self, a, b):
+
+        a = a.flatten()
+        b = b.flatten()
         rval,_ = pearsonr(a,b)
 
         self.buf.append(rval)

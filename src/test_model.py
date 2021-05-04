@@ -85,12 +85,12 @@ def main(args):
 
     print("Reading dataset")
 
-    dataset_test = UC3_Dataset(os.path.join(args.in_ds,'input_tensored'),os.path.join(args.in_ds,args.target), num_channels,num_channels_gt, size, is_test=True, gpu=args.gpu)
+    dataset_test = UC3_Dataset(os.path.join(args.in_ds,'input_tensored'),os.path.join(args.in_ds,args.target), num_channels,num_channels_gt, size, is_test=True, gpu=net.dev)
 
-    batch_size_val = 1
+    batch_size_test = args.batch_size
     num_samples_test = len(dataset_test)
-    num_batches_test = num_samples_validation // batch_size_val
-    seen_samples_val = batch_size_val * num_batches_validation
+    num_batches_test = num_samples_test // batch_size_test
+    seen_samples_test = batch_size_test * num_batches_test
 
     print("Testing")
     eddl.set_mode(net, 0)
@@ -98,13 +98,15 @@ def main(args):
     miou_evaluator = utils.Evaluator()
     pearson_evaluator = utils.Evaluator()
     dice_evaluator = utils.Evaluator()
+    metric = eddl.getMetric("mean_absolute_error")
+    error = eddl.getLoss("mean_squared_error")
     test_loss, test_acc = 0.0 , 0.0
     start_time = time.time()
 
     for b in range(num_batches_test):
         print("Batch {:d}/{:d} ".format(
             b + 1, num_batches_test), end="", flush=True)
-        x,y = LoadBatch(dataset_test, b , batch_size = batch_size_val)
+        x,y = LoadBatch(dataset_test, b , batch_size = batch_size_test)
 
         eddl.forward(net, [x])
         output = eddl.getOutput(net.lout[0])
@@ -116,11 +118,11 @@ def main(args):
         for k in range(output.shape[0]):#args.batch_size):
             pred = output.select([str(k)])
             gt = y.select([str(k)])
-            pred_np = np.array(pred, copy=False)
-            gt_np = np.array(gt, copy=False)
-            miou_evaluator.BinaryIoU(pred_np, gt_np, thresh=thresh)
-            pearson_evaluator.PearsonCorrelation(pred_np, gt_np)
-            dice_evaluator.DiceCoefficient(pred_np, gt_np)
+            pred_np = np.squeeze(np.array(pred, copy=False))
+            gt_np = np.squeeze(np.array(gt, copy=False))
+            miou_evaluator.BinaryIoU(pred_np, gt_np, thresh=np.mean(gt_np))
+            pearson_evaluator.PearsonCorrelation(pred_np, gt_np, thresh=np.mean(gt_np))
+            dice_evaluator.DiceCoefficient(pred_np, gt_np, thresh=np.mean(gt_np))
             if args.save_images and args.runs_dir:
                 pred_np *= 255
                 pred_ecvl = ecvl.TensorToView(pred)
@@ -141,10 +143,10 @@ def main(args):
     pearson = pearson_evaluator.MeanMetric()
     dice = dice_evaluator.MeanMetric()
 
-    test_loss = test_loss / seen_samples_val
-    test_acc  = test_acc / seen_samples_val
-    print("Loss:\t", test_loss)
-    print("MSE:\t", test_acc)
+    test_loss = test_loss / seen_samples_test
+    test_acc  = test_acc / seen_samples_test
+    print("Loss (MSE):\t", test_loss)
+    print("MAE:\t", test_acc)
     print("IntersectionOverUnion Score:\t", iou)
     print("Pearson Correlation Score:\t", pearson)
     print("Dice Score:\t", dice)
@@ -156,9 +158,11 @@ if __name__ == "__main__":
     parser.add_argument("in_ds", metavar="INPUT_DATASET")
     parser.add_argument("--ckpts", metavar='CHECKPOINTS_PATH',
                         default='checkpoints/dh-uc3_epoch_200_miou_1.bin')
-    parser.add_argument("--batch-size", type=int, metavar="INT", default=1)
+    parser.add_argument("--batch-size", type=int, metavar="INT", default=4)
     parser.add_argument("--shape", type=int, default=512)
     parser.add_argument('--gpu', nargs='+', type=int, required=False, help='`--gpu 1 1` to use two GPUs')
     parser.add_argument("--runs-dir", default='outputs', help="if set, save images, checkpoints and logs in this directory")
     parser.add_argument("--mem", metavar="|".join(MEM_CHOICES), choices=MEM_CHOICES, default="full_mem")
+    parser.add_argument("--target", type=str, metavar='TARGET', help="TTP or CBF or CBV", default='TTP')
+    parser.add_argument("--save-images", action='store_true')
     main(parser.parse_args())
