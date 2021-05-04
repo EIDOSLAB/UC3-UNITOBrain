@@ -45,7 +45,7 @@ def main(args):
 
     size = [ args.shape, args.shape]  # size of images
 
-    thresh = 0.5
+    thresh = args.thresh
     miou_best = -1
 
     if args.runs_dir:
@@ -120,9 +120,10 @@ def main(args):
             gt = y.select([str(k)])
             pred_np = np.squeeze(np.array(pred, copy=False))
             gt_np = np.squeeze(np.array(gt, copy=False))
-            miou_evaluator.BinaryIoU(pred_np, gt_np, thresh=np.mean(gt_np))
-            pearson_evaluator.PearsonCorrelation(pred_np, gt_np, thresh=np.mean(gt_np))
-            dice_evaluator.DiceCoefficient(pred_np, gt_np, thresh=np.mean(gt_np))
+            #thresh = np.mean(gt_np)
+            miou_evaluator.IoU(pred_np, gt_np, thresh=thresh)
+            pearson_evaluator.PearsonCorrelation(pred_np, gt_np)
+            dice_evaluator.DiceCoefficient(pred_np, gt_np, thresh=thresh)
             if args.save_images and args.runs_dir:
                 pred_np *= 255
                 pred_ecvl = ecvl.TensorToView(pred)
@@ -160,6 +161,7 @@ if __name__ == "__main__":
                         default='checkpoints/dh-uc3_epoch_200_miou_1.bin')
     parser.add_argument("--batch-size", type=int, metavar="INT", default=4)
     parser.add_argument("--shape", type=int, default=512)
+    parser.add_argument("--thresh", help='thresh for binary scores evaluation',type=float, default=None)
     parser.add_argument('--gpu', nargs='+', type=int, required=False, help='`--gpu 1 1` to use two GPUs')
     parser.add_argument("--runs-dir", default='outputs', help="if set, save images, checkpoints and logs in this directory")
     parser.add_argument("--mem", metavar="|".join(MEM_CHOICES), choices=MEM_CHOICES, default="full_mem")

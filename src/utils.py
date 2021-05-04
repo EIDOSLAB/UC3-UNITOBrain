@@ -10,18 +10,30 @@ class Evaluator:
     def ResetEval(self):
         self.buf = []
 
-    def BinaryIoU(self, a, b, thresh=0.5):
-        intersection = np.logical_and(a >= thresh, b >= thresh).sum()
-        union = np.logical_or(a >= thresh, b >= thresh).sum()
-        rval = (intersection + self.eps) / (union + self.eps)
+    def IoU(self, a, b, thresh=None):
+        if thresh:
+            a = Threshold(a, thresh)
+            b = Threshold(b, thresh)
+            intersection = np.logical_and(a, b).sum()
+            union = np.logical_or(a, b).sum() #no need to subtract intersection
+            rval = (intersection + self.eps) / (union + self.eps)
+        else:
+            intersection = (a.flatten() * b.flatten()).sum()
+            union = (a.flatten().sum() + b.flatten().sum()) - intersection
+            rval = (intersection + self.eps) / (union + self.eps)
         self.buf.append(rval)
         return rval
 
-    def DiceCoefficient(self, a, b, thresh=0.5):
-        a = Threshold(a, thresh)
-        b = Threshold(b, thresh)
-        intersection = np.logical_and(a, b).sum()
-        rval = (2 * intersection + self.eps) / (a.sum() + b.sum() + self.eps)
+
+    def DiceCoefficient(self, a, b, thresh=None):
+        if thresh:
+            a = Threshold(a, thresh)
+            b = Threshold(b, thresh)
+            intersection = np.logical_and(a, b).sum()
+            rval = (2 * intersection + self.eps) / (a.sum() + b.sum() + self.eps)
+        else:
+            intersection = (a.flatten() * b.flatten()).sum()
+            rval = (2 * intersection + self.eps) / (a.sum() + b.sum() + self.eps)
 
         self.buf.append(rval)
         return rval
