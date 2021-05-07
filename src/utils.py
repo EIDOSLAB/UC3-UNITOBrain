@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.stats import pearsonr
+from scipy.spatial import distance
 
 
 class Evaluator:
@@ -15,12 +16,13 @@ class Evaluator:
             a = Threshold(a, thresh)
             b = Threshold(b, thresh)
             intersection = np.logical_and(a, b).sum()
-            union = np.logical_or(a, b).sum() #no need to subtract intersection
-            rval = (intersection + self.eps) / (union + self.eps)
+            union = np.logical_or(a, b).sum() 
+            rval = intersection / (union + self.eps)
         else:
-            intersection = (a.flatten() * b.flatten()).sum()
-            union = (a.flatten().sum() + b.flatten().sum()) - intersection
-            rval = (intersection + self.eps) / (union + self.eps)
+            intersection = (a * b).sum()
+            #not boolean OR, so needs to subtract intersection
+            union = (a.sum() + b.sum()) - intersection 
+            rval = intersection / (union + self.eps)
         self.buf.append(rval)
         return rval
 
@@ -29,20 +31,19 @@ class Evaluator:
         if thresh:
             a = Threshold(a, thresh)
             b = Threshold(b, thresh)
-            intersection = np.logical_and(a, b).sum()
-            rval = (2 * intersection + self.eps) / (a.sum() + b.sum() + self.eps)
+            rval = distance.dice(a.flatten(),b.flatten())
+            #intersection = np.logical_and(a, b).sum()
+            #rval = (2 * intersection + self.eps) / (a.sum() + b.sum() + self.eps)
         else:
-            intersection = (a.flatten() * b.flatten()).sum()
-            rval = (2 * intersection + self.eps) / (a.sum() + b.sum() + self.eps)
+            intersection = (a * b).sum()
+            rval = (2 * intersection) / (a.sum() + b.sum() + self.eps)
 
         self.buf.append(rval)
         return rval
 
     def PearsonCorrelation(self, a, b):
 
-        a = a.flatten()
-        b = b.flatten()
-        rval,_ = pearsonr(a,b)
+        rval,_ = pearsonr(a.flatten(),b.flatten())
 
         self.buf.append(rval)
         return rval

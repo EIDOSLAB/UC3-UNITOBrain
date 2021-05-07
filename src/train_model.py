@@ -93,7 +93,7 @@ def main(args):
     print('Train Samples: ',num_samples_train)
     num_batches_train = num_samples_train // args.batch_size
 
-    batch_size_val = 2
+    batch_size_val = 1
     num_samples_validation = len(dataset_test)
     num_batches_validation = num_samples_validation // batch_size_val
     seen_samples_val = batch_size_val * num_batches_validation
@@ -125,7 +125,7 @@ def main(args):
             if b==0 :
                 output = eddl.getOutput(out)
                 examples = [wandb.Image(output.getdata()[0], caption="Train-Output"),wandb.Image(y.getdata()[0], caption="Train-"+args.target)]
-                examples += [wandb.Image(output.getdata()[1], caption="2Train-Output"),wandb.Image(y.getdata()[1], caption="2Train-"+args.target)]
+                #examples += [wandb.Image(output.getdata()[1], caption="2Train-Output"),wandb.Image(y.getdata()[1], caption="2Train-"+args.target)]
             
 
             if i % args.log_interval == 0:
@@ -173,8 +173,8 @@ def main(args):
             if b==0:
                 examples.append(wandb.Image(output.getdata()[0], caption="Validation-Output"))
                 examples.append(wandb.Image(y.getdata()[0], caption="Validation-"+args.target))
-                examples.append(wandb.Image(output.getdata()[1], caption="2Validation-Output"))
-                examples.append(wandb.Image(y.getdata()[1], caption="2Validation-"+args.target))
+                #examples.append(wandb.Image(output.getdata()[1], caption="2Validation-Output"))
+                #examples.append(wandb.Image(y.getdata()[1], caption="2Validation-"+args.target))
 
 
             # ! .value return a sum of scores
@@ -185,7 +185,7 @@ def main(args):
                 gt = y.select([str(k)])
                 pred_np = np.array(pred, copy=False)
                 gt_np = np.array(gt, copy=False)
-                miou_evaluator.BinaryIoU(pred_np, gt_np, thresh=np.mean(gt_np))
+                miou_evaluator.IoU(pred_np, gt_np, thresh=0.5)
                 if args.save_images and args.runs_dir:
     
                     pred_np *= 255
@@ -216,6 +216,8 @@ def main(args):
             eddl.save(net, checkpoint_path, "bin")
             miou_best = miou
         run.log({"train_time_epoch": tttse, "train_loss": train_loss, "train_mae": train_acc, "val_loss": val_loss, "val_mae": val_acc , "examples": examples})
+    checkpoint_path = os.path.join(args.runs_dir, "checkpoints", "dh-uc3_{}_{}_epoch_{}_miou_{:.4f}.bin".format(args.name,args.target,args.epochs, miou))
+    eddl.save(net, checkpoint_path, "bin")
     print("---Time to Train: %s seconds ---" % (time.time() - start_time))
 
 

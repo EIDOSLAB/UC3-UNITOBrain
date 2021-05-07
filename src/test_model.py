@@ -161,7 +161,7 @@ if __name__ == "__main__":
                         default='checkpoints/dh-uc3_epoch_200_miou_1.bin')
     parser.add_argument("--batch-size", type=int, metavar="INT", default=4)
     parser.add_argument("--shape", type=int, default=512)
-    parser.add_argument("--thresh", help='thresh for binary scores evaluation',type=float, default=None)
+    parser.add_argument("--thresh", help='thresh for binary scores evaluation',type=float, default=0.5)
     parser.add_argument('--gpu', nargs='+', type=int, required=False, help='`--gpu 1 1` to use two GPUs')
     parser.add_argument("--runs-dir", default='outputs', help="if set, save images, checkpoints and logs in this directory")
     parser.add_argument("--mem", metavar="|".join(MEM_CHOICES), choices=MEM_CHOICES, default="full_mem")
