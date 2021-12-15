@@ -6,28 +6,33 @@ spec:
   restartPolicy: Never
   containers:
     - name: dh
-      image: perlodaniele/dh-base:gpu
+      image: perlodaniele/dh-base:latest
       env:
         - name: WANDB_BASE_URL
           valueFrom:
             secretKeyRef:
-              name: perlo-wandb-auth
+              name: my-wandb-auth #dummy references
               key: host
         - name: WANDB_API_KEY
           valueFrom:
             secretKeyRef:
-              name: perlo-wandb-auth
+              name: my-wandb-auth
               key: key
-      command: ["tail", "-f", "/dev/null"]
+      command: ["tail", "-f", "/dev/null"] #change with the commands you want to run
       resources:
         limits:
-          nvidia.com/gpu: 1
+          nvidia.com/gpu: 2
         requests:
-          nvidia.com/gpu: 1
+          nvidia.com/gpu: 2
       volumeMounts:
         - name: uc3-data #this is just a local name
           mountPath: /mnt/data
+        - name: shm
+          mountPath: /dev/shm
   volumes:
     - name: uc3-data
       persistentVolumeClaim:
         claimName: uc3-volume
+    - name: shm
+      emptyDir:
+        medium: Memory
