@@ -1,5 +1,6 @@
 # UC3 UNITOBrain 
 
+This repository contains the source code for getting started on [UniToBrain](https://ieee-dataport.org/open-access/unitobrain) dataset by using [pyEDDL](https://github.com/deephealthproject/pyeddl)/[pyECVL](https://github.com/deephealthproject/pyecvl)
 
 # Requirements
 * numpy
@@ -8,6 +9,7 @@
 * cv2
 * wandb
 * scipy
+* pydicom
 
 # Train Run Command
 ```
