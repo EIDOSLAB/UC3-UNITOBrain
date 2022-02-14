@@ -21,7 +21,7 @@ from functools import partial
 MEM_CHOICES = ("low_mem", "mid_mem", "full_mem")
 
 def main(args):
-   
+    print(args)
     np.random.seed(42)
 
     size = [ args.shape, args.shape]  # size of images
@@ -45,7 +45,7 @@ def main(args):
     for layer in net.layers:
         for params in layer.params:
             count += params.size
-    print("Number of trainable parameters: {}".format(count))
+    print("Number of trainable parameters: {}".format(count), flush=True)
 
     config = dict (
          learning_rate = args.lr,
@@ -70,7 +70,7 @@ def main(args):
         eddl.adam(args.lr, weight_decay = args.weight_decay),#eddl.sgd(args.lr,momentum=0.9,weight_decay = args.weight_decay),#
         ["mean_squared_error"],
         ["mean_absolute_error"],
-        eddl.CS_GPU(args.gpu, mem=args.mem) if args.gpu else eddl.CS_CPU(mem=args.mem)
+        eddl.CS_GPU(args.gpu, 1, mem=args.mem) if args.gpu else eddl.CS_CPU(mem=args.mem)
     )
     #eddl.summary(net)
     log_filepath = "uc_3"
@@ -79,10 +79,10 @@ def main(args):
     eddl.setlogfile(net, log_filepath)
 
     if args.resume_ckpts and os.path.exists(args.resume_ckpts):
-        print("Loading checkpoints '{}'".format(args.resume_ckpts))
+        print("Loading checkpoints '{}'".format(args.resume_ckpts), flush=True)
         eddl.load(net, args.resume_ckpts, 'bin')
 
-    print("Reading dataset")
+    print("Reading dataset", flush=True)
 
 
     dataset_train = UC3_Dataset(os.path.join(args.in_ds,'input_tensored'),os.path.join(args.in_ds,args.target), num_channels,num_channels_gt, size, is_test=False, gpu=net.dev)
@@ -90,18 +90,19 @@ def main(args):
 
 
     num_samples_train = len(dataset_train)
-    print('Train Samples: ',num_samples_train)
+    print('Train Samples: {}'.format(num_samples_train), flush=True)
     num_batches_train = num_samples_train // args.batch_size
 
-    batch_size_val = 1
+    batch_size_val = args.batch_size_val
     num_samples_validation = len(dataset_test)
+    print('Val Samples: {}'.format(num_samples_validation), flush=True)
     num_batches_validation = num_samples_validation // batch_size_val
     seen_samples_val = batch_size_val * num_batches_validation
 
 
     miou_evaluator = utils.Evaluator()
     
-    print("Starting training")
+    print("Starting training", flush=True)
     start_time = time.time()
     for e in range(args.epochs):
         print("Epoch {:d}/{:d} - Training".format(e + 1, args.epochs),
@@ -121,7 +122,7 @@ def main(args):
             tx, ty = [x], [y]
             eddl.train_batch(net, tx, ty, range(args.batch_size))
 
-            eddl.forward(net, tx)
+            #eddl.forward(net, tx)
             if b==0 :
                 output = eddl.getOutput(out)
                 examples = [wandb.Image(output.getdata()[0], caption="Train-Output"),wandb.Image(y.getdata()[0], caption="Train-"+args.target)]
@@ -142,9 +143,9 @@ def main(args):
         tttse = (time.time() - start_e_time)
         train_loss = train_loss / num_batches_train
         train_acc  = train_acc / num_batches_train
-        print("---Time to Train - Single Epoch: %s seconds ---" % tttse)
-        print("---Train Loss:\t\t%s ---" % train_loss)
-        print("---Train Accuracy:\t%s ---" % train_acc)
+        print("---Time to Train - Single Epoch: %s seconds ---" % tttse, flush=True)
+        print("---Train Loss:\t\t%s ---" % train_loss, flush=True)
+        print("---Train Accuracy:\t%s ---" % train_acc, flush=True)
 
         ## Sheduler logic
         ## ...
@@ -153,7 +154,10 @@ def main(args):
 
         print("Epoch %d/%d - Evaluation" % (e + 1, args.epochs), flush=True)
         start_time_e = time.time()
-        miou_evaluator.ResetEval()
+        miou_evaluator = utils.Evaluator()
+        pearson_evaluator = utils.Evaluator()
+        dice_evaluator = utils.Evaluator()
+
         metric = eddl.getMetric("mean_absolute_error")
         error = eddl.getLoss("mean_squared_error")
         val_loss, val_acc = 0.0 , 0.0
@@ -165,8 +169,8 @@ def main(args):
             ), end="", flush=True)
             x,y = LoadBatch(dataset_test, b , batch_size = batch_size_val)
 
-            eddl.forward(net, [x])
-
+            #eddl.forward(net, [x])
+            eddl.eval_batch(net,[x],[y])
             output = eddl.getOutput(net.lout[0])
 
             # Log first image pair
@@ -186,6 +190,8 @@ def main(args):
                 pred_np = np.array(pred, copy=False)
                 gt_np = np.array(gt, copy=False)
                 miou_evaluator.IoU(pred_np, gt_np, thresh=0.5)
+                pearson_evaluator.PearsonCorrelation(pred_np, gt_np)
+                dice_evaluator.DiceCoefficient(pred_np, gt_np, thresh=0.5)
                 if args.save_images and args.runs_dir:
     
                     pred_np *= 255
@@ -203,22 +209,28 @@ def main(args):
                     examples.append(wandb.Image(pred_np, caption="Validation-HeatMap"))
 
             print()
-        print("---Evaluation Epoch takes %s seconds ---" % (time.time() - start_time_e))
+        ttese = (time.time() - start_time_e)
+        print("---Evaluation Epoch takes %s seconds ---" % ttese, flush=True)
         val_loss = val_loss / seen_samples_val
         val_acc  = val_acc / seen_samples_val
         miou = miou_evaluator.MeanMetric()
-        print("---MIoU Score: %.6g" % miou)
-        print("---Validation Loss:\t\t%s ---" % val_loss)
-        print("---Validation Accuracy:\t%s ---" % val_acc)
+        pearson = pearson_evaluator.MeanMetric()
+        dice = dice_evaluator.MeanMetric()
+        val_acc = miou
+        print("---IoU Score: %.6g" % miou, flush=True)
+        print("---Pearson Correlation Score:\t", pearson, flush=True)
+        print("---Dice Score:\t", dice, flush=True)
+        print("---Validation Loss:\t\t%s ---" % val_loss, flush=True)
+        print("---Validation IoU:\t%s ---" % val_acc, flush=True)
         if miou > miou_best:
-            print("Saving weights")
+            print("Saving weights", flush=True)
             checkpoint_path = os.path.join(args.runs_dir, "checkpoints", "dh-uc3_{}_{}_epoch_{}_miou_{:.4f}.bin".format(args.name,args.target,e+1, miou))
             eddl.save(net, checkpoint_path, "bin")
             miou_best = miou
-        run.log({"train_time_epoch": tttse, "train_loss": train_loss, "train_mae": train_acc, "val_loss": val_loss, "val_mae": val_acc , "examples": examples})
+        run.log({"train_time_epoch": tttse, "train_loss": train_loss, "train_mae": train_acc, "val_mse": val_loss, "val_iou": miou ,"val_pearson": pearson,"val_dice":dice , "eval_time_epoch": ttese , "examples": examples })
     checkpoint_path = os.path.join(args.runs_dir, "checkpoints", "dh-uc3_{}_{}_epoch_{}_miou_{:.4f}.bin".format(args.name,args.target,args.epochs, miou))
     eddl.save(net, checkpoint_path, "bin")
-    print("---Time to Train: %s seconds ---" % (time.time() - start_time))
+    print("---Time to Train: %s seconds ---" % (time.time() - start_time), flush=True)
 
 
 if __name__ == "__main__":
@@ -227,9 +239,10 @@ if __name__ == "__main__":
     parser.add_argument("--target", help='TTP or CBF or CBV', metavar="INPUT_TARGET", default='TTP')
     parser.add_argument("--epochs", type=int, metavar="INT", default=250)#250
     parser.add_argument("--batch-size", type=int, metavar="INT", default=8)#8
+    parser.add_argument("--batch-size-val", type=int, metavar="INT", default=4)#8
     parser.add_argument("--shape", type=int, default=128)
     parser.add_argument("--weight-decay", type=float, default=0.0)
-    parser.add_argument("--log-interval", type=int, metavar="INT", default=1)
+    parser.add_argument("--log-interval", type=int, metavar="INT", default=100)
     parser.add_argument('--gpu', nargs='+', type=int, required=False, help='`--gpu 1 1` to use two GPUs')
     parser.add_argument("--save-images", action="store_true")
     parser.add_argument("--runs-dir", default='outputs', metavar="DIR", help="if set, save images, checkpoints and logs in this directory")
