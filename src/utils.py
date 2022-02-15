@@ -11,7 +11,7 @@ class Evaluator:
     def ResetEval(self):
         self.buf = []
 
-    def IoU(self, a, b, thresh=None):
+    def IoU(self, a, b, thresh=0.5):
         if thresh:
             a = Threshold(a, thresh)
             b = Threshold(b, thresh)
@@ -27,16 +27,11 @@ class Evaluator:
         return rval
 
 
-    def DiceCoefficient(self, a, b, thresh=None):
-        if thresh:
-            a = Threshold(a, thresh)
-            b = Threshold(b, thresh)
-            rval = distance.dice(a.flatten(),b.flatten())
-            #intersection = np.logical_and(a, b).sum()
-            #rval = (2 * intersection + self.eps) / (a.sum() + b.sum() + self.eps)
-        else:
-            intersection = (a * b).sum()
-            rval = (2 * intersection) / (a.sum() + b.sum() + self.eps)
+    def DiceCoefficient(self, a, b, thresh=0.5):
+        a = Threshold(a, thresh)
+        b = Threshold(b, thresh)
+        intersection = np.logical_and(a, b).sum()
+        rval = (2 * intersection + self.eps) / (a.sum() + b.sum() + self.eps)
 
         self.buf.append(rval)
         return rval

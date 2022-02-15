@@ -64,13 +64,17 @@ def main(args):
        config=config,
     )
 
+    if args.num_gpu is not None:
+        gpu = np.ones(args.num_gpu,dtype=np.int8).tolist()
+    else:
+        gpu = False
 
     eddl.build(
         net,
         eddl.adam(args.lr, weight_decay = args.weight_decay),#eddl.sgd(args.lr,momentum=0.9,weight_decay = args.weight_decay),#
         ["mean_squared_error"],
         ["mean_absolute_error"],
-        eddl.CS_GPU(args.gpu, 1, mem=args.mem) if args.gpu else eddl.CS_CPU(mem=args.mem)
+        eddl.CS_GPU(gpu, args.lsb, mem=args.mem) if gpu else eddl.CS_CPU(mem=args.mem)
     )
     #eddl.summary(net)
     log_filepath = "uc_3"
@@ -243,7 +247,9 @@ if __name__ == "__main__":
     parser.add_argument("--shape", type=int, default=128)
     parser.add_argument("--weight-decay", type=float, default=0.0)
     parser.add_argument("--log-interval", type=int, metavar="INT", default=100)
-    parser.add_argument('--gpu', nargs='+', type=int, required=False, help='`--gpu 1 1` to use two GPUs')
+    parser.add_argument("--lsb", type=int, default=1)
+    #parser.add_argument('--gpu', nargs='+', type=int, required=False, help='`--gpu 1 1` to use two GPUs')
+    parser.add_argument('--num_gpu',type=int, required=False, help='number of GPUs', default=None)
     parser.add_argument("--save-images", action="store_true")
     parser.add_argument("--runs-dir", default='outputs', metavar="DIR", help="if set, save images, checkpoints and logs in this directory")
     parser.add_argument("--resume_ckpts", type=str)

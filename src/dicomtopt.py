@@ -41,35 +41,31 @@ def dicomtouint8(data):
   return converted
 
 
-root = '/data03/DH_UC3_Brain/'
-inputdir = root + 'processed_data_Benninck/*'
-#outroot = '/home/deephealth_UC3/dataset_uc3_EL_128/'
-
 aratio = 512
 base = list(np.arange(0,524288, 2))
 adv = list(np.arange(1,524288, 2))
 #rescale_size = 128#512
 
 validation = ['001','002','003','004','005']
-#typeofmeasure = 'TTP'
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("--target",help='set to TPP,CBF,CBV to process data targets, default None for input', type=str, default=None)
-parser.add_argument("--outroot",help='output folder', type=str, default='/home/deephealth_UC3/dataset_uc3_EL_128/')
-parser.add_argument("--rescale_size",help='rescale size', type=int, default=128)
+parser.add_argument("--target",help='set to TPP,CBF,CBV to process data targets, default INPUT', type=str, default='INPUT')
+parser.add_argument("--prep_output_path",help='preprocessed output folder', type=str, default='/home/deephealth_UC3/dataset_uc3_EL_128/')
+parser.add_argument("--unitobrain_path",help='input folder', type=str, default='/data03/DH_UC3_Brain/processed_data_Benninck/')
+parser.add_argument("--rescale_size",help='rescale size (default 128)', type=int, default=128)
 args = parser.parse_args()
 
 rescale_size = args.rescale_size
 
-outroot = args.outroot
+inputdir = args.unitobrain_path
+
+
+outroot = args.prep_output_path
 if not os.path.exists(outroot):
   os.makedirs(outroot)
-test_list = glob(inputdir)
+test_list = glob(inputdir+'*')
 
 test_list = [ x for x in test_list if '_Maps' in x and 'MOL' in x]
-
-#debug
-#test_list = [test_list[0]]
 
 start_time = time.time()
 
@@ -77,7 +73,7 @@ for i in test_list:
 
     print(i)
 
-    if args.target is None:
+    if args.target is None or args.target == 'INPUT':
       typeofmeasure = 'TTP'
     else:
       typeofmeasure = args.target
@@ -93,7 +89,7 @@ for i in test_list:
       #map_data = ecvl.DicomRead(map_name)
       map_data = pydicom.dcmread(map_name)
 
-      if args.target is None:
+      if args.target is None or args.target == 'INPUT':
         h = float(map_data[0x20,0x32].value[2])##height
 
         for id in range(1, acq_card+1):
@@ -108,10 +104,10 @@ for i in test_list:
         overall_tensor = np.expand_dims(dicomtouint8(map_data), axis=0)
  
       target_name = map_name
-      target_name = target_name.replace( root + 'processed_data_Benninck/', outroot + 'input_tensored/')
+      target_name = target_name.replace( inputdir, outroot + 'input_tensored/')
       target_name = target_name.replace('.dcm', '.npy')
       
-      if args.target is not None:
+      if args.target is not None and args.target != 'INPUT':
         target_name = target_name.replace('_Registered_Filtered_3mm_20HU_Maps/NLR_'+typeofmeasure+'/NLR_'+typeofmeasure,'-')
         target_name = target_name.replace('input_tensored', typeofmeasure)
         if not os.path.exists(outroot + typeofmeasure):
@@ -123,7 +119,7 @@ for i in test_list:
             os.makedirs(outroot + 'input_tensored/')
 
       
-      if args.target is not None:
+      if args.target is not None and args.target != 'INPUT':
         img = ecvl.Image.fromarray(overall_tensor,'cyx', colortype=ecvl.ColorType.GRAY)
         ecvl.ResizeDim(img, img, [rescale_size,rescale_size], interp=ecvl.InterpolationType.linear)
         ecvl.RearrangeChannels(img,img,'cyx')

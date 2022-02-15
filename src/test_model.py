@@ -65,15 +65,20 @@ def main(args):
             count += params.size
     print("Number of trainable parameters: {}".format(count))
 
+    if args.num_gpu is not None:
+        gpu = np.ones(args.num_gpu,dtype=np.int8).tolist()
+    else:
+        gpu = False
 
     eddl.build(
         net,
         eddl.adam(0.001),
         ["mean_squared_error"],
         ["mean_absolute_error"],
-        eddl.CS_GPU(args.gpu, mem=args.mem) if args.gpu else eddl.CS_CPU(mem=args.mem)
+        eddl.CS_GPU(gpu, mem=args.mem) if gpu else eddl.CS_CPU(mem=args.mem)
     )
     eddl.summary(net)
+
     log_filepath = "test_uc_3"
     if args.runs_dir:
         log_filepath = os.path.join(args.runs_dir, "logs", "test_uc_3")
@@ -120,7 +125,6 @@ def main(args):
             gt = y.select([str(k)])
             pred_np = np.squeeze(np.array(pred, copy=False))
             gt_np = np.squeeze(np.array(gt, copy=False))
-            #thresh = np.mean(gt_np)
             miou_evaluator.IoU(pred_np, gt_np, thresh=thresh)
             pearson_evaluator.PearsonCorrelation(pred_np, gt_np)
             dice_evaluator.DiceCoefficient(pred_np, gt_np, thresh=thresh)
@@ -157,12 +161,12 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("in_ds", metavar="INPUT_DATASET")
-    parser.add_argument("--ckpts", metavar='CHECKPOINTS_PATH',
-                        default='checkpoints/dh-uc3_epoch_200_miou_1.bin')
+    parser.add_argument("--ckpts", metavar='CHECKPOINTS_PATH', default='checkpoints/dh-uc3_epoch_200_miou_1.bin')
+    parser.add_argument('--num_gpu',type=int, required=False, help='number of GPUs', default=None)
     parser.add_argument("--batch-size", type=int, metavar="INT", default=4)
     parser.add_argument("--shape", type=int, default=512)
     parser.add_argument("--thresh", help='thresh for binary scores evaluation',type=float, default=0.5)
-    parser.add_argument('--gpu', nargs='+', type=int, required=False, help='`--gpu 1 1` to use two GPUs')
+    #parser.add_argument('--gpu', nargs='+', type=int, required=False, help='`--gpu 1 1` to use two GPUs')
     parser.add_argument("--runs-dir", default='outputs', help="if set, save images, checkpoints and logs in this directory")
     parser.add_argument("--mem", metavar="|".join(MEM_CHOICES), choices=MEM_CHOICES, default="full_mem")
     parser.add_argument("--target", type=str, metavar='TARGET', help="TTP or CBF or CBV", default='TTP')
