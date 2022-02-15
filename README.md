@@ -13,7 +13,7 @@ This repository contains the source code for getting started on [UniToBrain](htt
 
 # 1) Preprocessing Run Command
 The network inputs are tensors of multiple CT images at the same scansion height for each patient.
-This script creates a folder called `input_tensored` into the path 'prep_output_path' path.
+This script creates a folder called `input_tensored` into the `prep_output_path` path.
 
 Image size of `128` pixels is used for the pratrain phase, size of `512` for the full resolution training  
 
