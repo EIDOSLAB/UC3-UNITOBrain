@@ -21,9 +21,9 @@ spec:
       command: ["tail", "-f", "/dev/null"] #change with the commands you want to run
       resources:
         limits:
-          nvidia.com/gpu: 2
+          nvidia.com/gpu: 4
         requests:
-          nvidia.com/gpu: 2
+          nvidia.com/gpu: 4
       volumeMounts:
         - name: uc3-data #this is just a local name
           mountPath: /mnt/data
