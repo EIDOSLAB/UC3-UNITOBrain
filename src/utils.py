@@ -15,8 +15,8 @@ class Evaluator:
         if thresh:
             a = Threshold(a, thresh)
             b = Threshold(b, thresh)
-            intersection = np.logical_and(a, b).sum()
-            union = np.logical_or(a, b).sum() 
+            intersection = np.count_nonzero(np.logical_and(a, b))#.sum()
+            union = np.count_nonzero(np.logical_or(a, b))#.sum() 
             rval = intersection / (union + self.eps)
         else:
             intersection = (a * b).sum()
@@ -30,8 +30,8 @@ class Evaluator:
     def DiceCoefficient(self, a, b, thresh=0.5):
         a = Threshold(a, thresh)
         b = Threshold(b, thresh)
-        intersection = np.logical_and(a, b).sum()
-        rval = (2 * intersection + self.eps) / (a.sum() + b.sum() + self.eps)
+        intersection = np.count_nonzero(np.logical_and(a, b))#.sum()
+        rval = (2 * intersection + self.eps) / (np.count_nonzero(a) + np.count_nonzero(b) + self.eps)
 
         self.buf.append(rval)
         return rval
@@ -52,9 +52,11 @@ class Evaluator:
 
 
 def Threshold(a, thresh=0.5):
-    a[a >= thresh] = 1
-    a[a < thresh] = 0
-    return a
+    return (a >= thresh)
+    #.astype(int)
+    #a[a >= thresh] = 1
+    #a[a < thresh] = 0
+    #return a
 
 
 def ImageSqueeze(img):
