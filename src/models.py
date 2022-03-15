@@ -183,27 +183,31 @@ def UNet(x, num_classes):
     x5 = eddl.ReLu(eddl.BatchNormalization(eddl.Conv(x5, 16*depth, [3, 3], [1, 1], "same"), True))
 
     # decoder
-    x5 = eddl.Conv(
-        eddl.UpSampling(x5, [2, 2]), 8*depth, [2, 2], [1, 1], "same"
-    )
+    #x5 = eddl.Conv( eddl.UpSampling(x5, [2, 2]), 8*depth, [2, 2], [1, 1], "same")
+    x5 = eddl.Pad( eddl.UpSampling(x5, [2,2]), [0, 1, 1, 0]) #<-- pad fix
+    x5 = eddl.Conv(x5, 8*depth, [2, 2], [1, 1], "valid")
+    
     x4 = eddl.Concat([x4, x5])
     x4 = eddl.ReLu(eddl.BatchNormalization(eddl.Conv(x4, 8*depth, [3, 3], [1, 1], "same"), True))
     x4 = eddl.ReLu(eddl.BatchNormalization(eddl.Conv(x4, 8*depth, [3, 3], [1, 1], "same"), True))
-    x4 = eddl.Conv(
-        eddl.UpSampling(x4, [2, 2]), 4*depth, [2, 2], [1, 1], "same"
-    )
+    #x4 = eddl.Conv(eddl.UpSampling(x4, [2, 2]), 4*depth, [2, 2], [1, 1], "same")
+    x4 = eddl.Pad(eddl.UpSampling(x4, [2,2]), [0, 1, 1, 0]) #<-- pad fix
+    x4 = eddl.Conv(x4, 4*depth, [2, 2], [1, 1], "valid")
+    
     x3 = eddl.Concat([x3, x4])
     x3 = eddl.ReLu(eddl.BatchNormalization(eddl.Conv(x3, 4*depth, [3, 3], [1, 1], "same"), True))
     x3 = eddl.ReLu(eddl.BatchNormalization(eddl.Conv(x3, 4*depth, [3, 3], [1, 1], "same"), True))
-    x3 = eddl.Conv(
-        eddl.UpSampling(x3, [2, 2]), 2*depth, [2, 2], [1, 1], "same"
-    )
+    #x3 = eddl.Conv(eddl.UpSampling(x3, [2, 2]), 2*depth, [2, 2], [1, 1], "same")
+    x3 = eddl.Pad(eddl.UpSampling(x3, [2,2]), [0, 1, 1, 0]) #<-- pad fix
+    x3 = eddl.Conv(x3, 2*depth, [2, 2], [1, 1], "valid")
+    
     x2 = eddl.Concat([x2, x3])
     x2 = eddl.ReLu(eddl.BatchNormalization(eddl.Conv(x2, 2*depth, [3, 3], [1, 1], "same"), True))
     x2 = eddl.ReLu(eddl.BatchNormalization(eddl.Conv(x2, 2*depth, [3, 3], [1, 1], "same"), True))
-    x2 = eddl.Conv(
-        eddl.UpSampling(x2, [2, 2]), depth, [2, 2], [1, 1], "same"
-    )
+    #x2 = eddl.Conv(eddl.UpSampling(x2, [2, 2]), depth, [2, 2], [1, 1], "same")
+    x2 = eddl.Pad(eddl.UpSampling(x2, [2,2]), [0, 1, 1, 0]) #<-- pad fix
+    x2 = eddl.Conv(x2, depth, [2, 2], [1, 1], "valid")
+    
     x = eddl.Concat([x, x2])
     x = eddl.ReLu(eddl.BatchNormalization(eddl.Conv(x, depth, [3, 3], [1, 1], "same"), True))
     x = eddl.ReLu(eddl.BatchNormalization(eddl.Conv(x, depth, [3, 3], [1, 1], "same"), True))
